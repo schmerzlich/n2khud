@@ -4,7 +4,7 @@ n2khud – Star Citizen global.ini Editor
 
 Übersicht
 
-n2khud ist ein Desktop-Tool für Windows, mit dem die global.ini von Star Citizen extrahiert, analysiert und angepasst werden kann.Es ändert ausschließlich die Klammerinhalte hinter Item-Namen (z. B. (Military - Size 2) → (Mil S02)), um wichtige Attribute wie Klasse, Größe und Grade kompakt darzustellen.
+n2khud ist ein Desktop-Tool für Windows, mit dem die global.ini von Star Citizen extrahiert, analysiert und angepasst werden kann. Es fügt ausschließlich die Klammerinhalte hinter Item-Namen hinzu (z. B. Acalanche (Mil S02 A)), um wichtige Attribute wie Klasse, Größe und Grade kompakt darzustellen.
 
 Hauptfunktionen
 
@@ -88,7 +88,7 @@ English version
 
 Overview
 
-n2khud is a Windows desktop tool to extract, analyze, and modify the global.ini file of Star Citizen.It only changes the bracketed parts after item names (e.g., (Military - Size 2) → (Mil S02)) to compactly display key attributes such as class, size, and grade.
+n2khud is a Windows desktop tool to extract, analyze, and modify the global.ini file of Star Citizen. It only adds bracketed parts after item names (e.g., Avalanche (Mil S02 A)) to compactly display key attributes such as class, size, and grade.
 
 Key Features
 
