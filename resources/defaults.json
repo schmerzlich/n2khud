@@ -1,0 +1,15 @@
+{
+  "filters": {
+    "comp": ["size", "grade", "class"],
+    "mining": ["size", "grade"],
+    "pwr": ["size", "class"],
+    "cool": ["size", "grade"]
+  },
+  "abbreviations": {
+    "military": "Mil",
+    "civilian": "Civ",
+    "competition": "Cmp",
+    "industrial": "Ind",
+    "stealth": "Stl"
+  }
+}
