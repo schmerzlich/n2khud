@@ -1,11 +1,24 @@
-# main.py — V1.1
+# main.py  # V1.1
+# Was gefixt wurde:
+# - Frühes DLL-Hardening (Windows) via dll_hardening.apply().
+# Was funktioniert:
+# - Unveränderte GUI-Funktionalität, DPI-Awareness, Konfig speichern.
+
 import os
 import sys
 import tkinter as tk
 from tkinter import messagebox
 
+# --- DLL-Hardening so früh wie möglich ---
+try:
+    import dll_hardening
+    dll_hardening.apply()
+except Exception:
+    pass
+
 from gui_components import build_gui
 from config_manager import load_config, save_config
+
 
 def center_window(win, w: int, h: int):
     win.update_idletasks()
@@ -16,9 +29,9 @@ def center_window(win, w: int, h: int):
     win.geometry(f"{w}x{h}+{x}+{y}")
 
 def try_set_icon(win):
-    base = getattr(sys, "_MEIPASS", os.path.abspath(os.path.dirname(__file__)))
-    ico_path = os.path.join(base, "resources", "app.ico")
-    png_path = os.path.join(base, "resources", "app.png")
+    app_dir = os.path.abspath(os.path.dirname(__file__))
+    ico_path = os.path.join(app_dir, "resources", "app.ico")
+    png_path = os.path.join(app_dir, "resources", "app.png")
     try:
         if os.path.isfile(ico_path):
             win.iconbitmap(ico_path)
@@ -42,9 +55,8 @@ def main():
         try:
             if isinstance(gui, dict):
                 if "get_game_dir" in gui and callable(gui["get_game_dir"]):
-                    cfg = load_config()
-                    cfg["game_dir"] = gui["get_game_dir"]() or ""
-                    save_config(cfg)
+                    config["game_dir"] = gui["get_game_dir"]() or ""
+            save_config(config)
         except Exception as e:
             messagebox.showwarning("Warning", f"Could not save configuration:\n{e}")
         finally:
