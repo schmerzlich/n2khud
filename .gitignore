@@ -16,9 +16,6 @@ venv/
 # Lokale Konfig
 config.json
 
-# Externe/Binaries (groß, nicht versionieren)
-unp4k-suite-v3.13.21/
-
 # OS / IDE
 .DS_Store
 Thumbs.db
