@@ -1,13 +1,13 @@
-# ini_parser.py  # V1.9.2
+# ini_parser.py  # V1.9.3
 # Was gefixt wurde:
-# - Ersetzt nun nur den Wert und behält die originalen Leerzeichen um '=' bei
-#   (z.B. "key=value" bleibt ohne Leerzeichen, "key = value" bleibt mit).
+# - read_text() heilt verwaiste 0xA0-Bytes im Roh-Stream (-> C2 A0) und probiert
+#   danach erneut UTF-8-SIG, bevor auf Latin-1 (replace) zurückgefallen wird.
+# - V1.9.2-Verbesserung bleibt: Originale Whitespaces um '=' werden bewahrt.
 #
 # Was funktioniert:
 # - Analyze: Items/Kategorien + Attributkatalog für die GUI.
 # - Generate: Einheitliche Klammern (role/size/grade) gemäß GUI-Regeln.
-# - Beim Schreiben modifizierter item_Name*-Zeilen bleibt die ursprüngliche
-#   Formatierung (Whitespace vor/nach '=') erhalten.
+# - Keine „Â“-Artefakte mehr durch Latin-1-Fallback bei UTF‑8‑BOM-Quellen.
 
 import codecs
 import re
@@ -35,12 +35,42 @@ def _map_category(cat): return _CAT_MAP.get(cat, cat)
 
 # --- IO ---
 def read_text(path):
+    """
+    Liest eine INI als Text ein.
+    Strategie:
+      1) Direkt UTF-8 mit BOM (utf-8-sig) versuchen.
+      2) Bei UnicodeDecodeError Rohbytes laden, verwaiste 0xA0 -> C2 A0 heilen,
+         erneut utf-8-sig versuchen.
+      3) Falls weiterhin fehlerhaft, Latin-1 mit errors='replace'.
+    """
+    # 1) Schnellpfad UTF-8-SIG
     try:
         with codecs.open(path, "r", encoding="utf-8-sig") as f:
             return f.read(), "utf-8-sig"
     except UnicodeDecodeError:
-        with codecs.open(path, "r", encoding="latin-1", errors="replace") as f:
-            return f.read(), "latin-1"
+        pass
+
+    # 2) Byte-Heilung: einzelne 0xA0 in gültige UTF-8-NBSP (C2 A0) umwandeln
+    with open(path, "rb") as fb:
+        raw = fb.read()
+
+    healed = bytearray()
+    prev = None
+    for b in raw:
+        if b == 0xA0 and prev != 0xC2:
+            healed.append(0xC2)
+            healed.append(0xA0)
+            prev = 0xA0
+        else:
+            healed.append(b)
+            prev = b
+
+    try:
+        text = healed.decode("utf-8-sig")
+        return text, "utf-8-sig(healed)"
+    except UnicodeDecodeError:
+        # 3) Letzter Ausweg: Latin-1 (mit Ersatzzeichen)
+        return raw.decode("latin-1", errors="replace"), "latin-1"
 
 def write_text(path, txt, encoding="utf-8-sig"):
     with codecs.open(path, "w", encoding=encoding) as f:
@@ -92,7 +122,6 @@ def build_attribute_catalog(items):
 
 # --- Merge-/Format-Hilfen ---
 _TRAIL_PAREN_RE = re.compile(r"\s*\(([^()]*)\)\s*$")
-_KEY_LINE_RE    = re.compile(r'^\s*([^=\s]+)\s*=\s*(.*)\s*$')
 # Für formatgetreues Überschreiben (Gruppen: lead, key, wsL, "=", wsR, val)
 _KEY_LINE_FMT_RE = re.compile(r'^(\s*)([^=\s]+)(\s*)=(\s*)(.*)$')
 
@@ -199,12 +228,11 @@ def build_modified_ini(raw_text: str, settings: dict) -> str:
 
     out_lines = []
     for ln in body.splitlines():
-        m = _KEY_LINE_FMT_RE.match(ln)
+        m = re.match(r'^(\s*)([^=\s]+)(\s*)=(\s*)(.*)$', ln)
         if not m:
             out_lines.append(ln); continue
         lead, key, wsL, wsR, val = m.groups()
         if key in rename:
-            # Originale Abstände beibehalten
             out_lines.append(f"{lead}{key}{wsL}={wsR}{rename[key]}")
         else:
             out_lines.append(ln)
