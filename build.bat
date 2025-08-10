@@ -1,33 +1,53 @@
-:: ---- build.cmd (V0.1) ----
 @echo off
-setlocal
+setlocal ENABLEDELAYEDEXPANSION
 
-:: 1) Python wählen (bevorzugt 3.11)
-for %%P in ("py -3.11" "py -3.10" "python" "py") do (
-  call %%~P -c "import sys;print(sys.version)" >nul 2>nul && set "PYCMD=%%~P" & goto :found
-)
-echo Kein passendes Python gefunden. Bitte Python 3.11 installieren.
-exit /b 1
-:found
+REM === build.bat — V0.1 ===
+REM Einstellungen
+set APPNAME=n2khud
+set ICON=resources\app.ico
+set RES=resources
+set UNP4K_DIR=unp4k-suite-v3.13.21
+set PY=py -3.11
+set CONSOLE=no  REM yes|no
 
-:: 2) venv anlegen (falls fehlt)
-if not exist ".venv\Scripts\python.exe" (
-  echo Erzeuge .venv …
-  %PYCMD% -m venv .venv || exit /b 1
-)
+echo === Clean ===
+if exist build rd /s /q build
+if exist dist\%APPNAME% rd /s /q dist\%APPNAME%
+if exist %APPNAME%.spec del %APPNAME%.spec
 
-set VENV_PY=.venv\Scripts\python.exe
-if not exist "%VENV_PY%" (
-  echo Venv defekt: %VENV_PY% nicht gefunden.
+echo === PyInstaller installieren (falls nötig) ===
+%PY% -m pip install -U pip wheel >nul 2>&1
+%PY% -m pip show pyinstaller >nul 2>&1 || %PY% -m pip install pyinstaller
+
+echo === Build ===
+set CONSOLE_FLAG=--noconsole
+if /I "%CONSOLE%"=="yes" set CONSOLE_FLAG=--console
+
+%PY% -m PyInstaller ^
+  --onedir ^
+  --noconfirm ^
+  %CONSOLE_FLAG% ^
+  --name %APPNAME% ^
+  --icon=%ICON% ^
+  --add-data "%RES%;%RES%" ^
+  --hidden-import=tkinter ^
+  --hidden-import=queue ^
+  --hidden-import=re ^
+  --hidden-import=codecs ^
+  main.py
+
+if errorlevel 1 (
+  echo Build failed.
   exit /b 1
 )
 
-:: 3) Pip/Tools
-%VENV_PY% -m pip install -U pip || exit /b 1
-%VENV_PY% -m pip install -U pyinstaller || exit /b 1
+echo === Externe unp4k-Suite bereitstellen ===
+if exist "%UNP4K_DIR%" (
+  xcopy "%UNP4K_DIR%" "dist\%APPNAME%\%UNP4K_DIR%" /E /I /Y >nul
+) else (
+  echo Hinweis: "%UNP4K_DIR%" wurde nicht gefunden. Bitte manuell neben die EXE legen.
+)
 
-:: 4) Build
-.\.venv\Scripts\pyinstaller.exe --clean --noconfirm n2khud.spec || exit /b 1
-
-echo Fertig. Ausgabe: dist\n2khud\
+echo === Fertig ===
+echo Dist: .\dist\%APPNAME%\
 endlocal
