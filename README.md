@@ -6,7 +6,7 @@
 ## Übersicht
 
 **n2khud** ist ein Desktop-Tool für Windows, mit dem die `global.ini` von Star Citizen extrahiert, analysiert und angepasst werden kann.  
-Es fügt ausschließlich die Klammerinhalte hinter Item-Namen hinzu (z. B. `Avalanche (Mil S02 A)`), um wichtige Attribute wie Klasse, Größe und Grade kompakt darzustellen.
+Es fügt ausschließlich Klammerinhalte hinter Item-Namen hinzu (z. B. `Avalanche (Mil S02 A)`), um wichtige Attribute wie Klasse, Größe und Grade anzuzeigen und kompakt darzustellen.
 
 ---
 
@@ -14,7 +14,7 @@ Es fügt ausschließlich die Klammerinhalte hinter Item-Namen hinzu (z. B. `Aval
 
 - **Automatisches Entpacken** der `global.ini` aus `Data.p4k` via **unp4k** (extern).
 - **Analyse** und **Kategorisierung** aller Items in logische Gruppen.
-- **GUI** zur Attributauswahl (Class, Size, Grade) pro Kategorie.
+- **GUI** zur Attributauswahl (Class, Size, Grade) pro Kategorie (z.B.: vehicle components).
 - **Benutzerdefinierte Abkürzungen** für Rollen (Mil, Civ, Cmp, Ind, Stl).
 - **Formatregeln** für Klammern (Reihenfolge, Size-Prefix, Padding).
 - **Direkter Export** der modifizierten `global.ini` in das deutsche Sprachverzeichnis von Star Citizen.
@@ -52,7 +52,7 @@ Es fügt ausschließlich die Klammerinhalte hinter Item-Namen hinzu (z. B. `Aval
 
 ## Nutzung
 
-1. Spielverzeichnis wählen.  
+1. Spielverzeichnis wählen (Verzeichnis `LIVE`- oder `PU`).  
 2. **Analyze** klicken.  
 3. Attribute auswählen.  
 4. Abkürzungen & Format einstellen.  
@@ -155,7 +155,7 @@ It only adds bracketed parts after item names (e.g., `Avalanche (Mil S02 A)`) to
 
 ## Usage
 
-1. Select the game directory.  
+1. Select the game directory (Direcory `LIVE`- or `PU`).  
 2. Click **Analyze**.  
 3. Select attributes.  
 4. Adjust abbreviations & format.  
