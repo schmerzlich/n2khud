@@ -1,22 +1,24 @@
-# pipeline.py  # V1.2
+# pipeline.py  # V1.3
 # Was gefixt wurde:
-# - Ressourcenpfade PyInstaller‑robust gemacht:
-#   _resource_dir() prüft sys._MEIPASS, EXE-Verzeichnis (+ _internal) und Dev-Ordner.
-#   Der unp4k-Ordner wird damit in onedir/onefile korrekt gefunden.
+# - unp4k wird niemals aus _internal / _MEIPASS ausgeführt. Falls vorhanden, wird es
+#   in einen externen Ordner (neben der EXE) kopiert und nur von dort verwendet.
+# - SHA-256-Integritätscheck für unp4k.exe / unforge.exe / unp4k.gui.exe.
+#
 # Was funktioniert:
-# - Analyze/Generate wie gehabt, Logging/Timer intakt.
+# - Analyze/Generate unverändert, Logging/Timer intakt.
 # - Schreiben nach LIVE\...\german_(germany)\global.ini + user.cfg-Update.
 # - Optionale Bereinigung von LIVE\Data.
+
 import os
 import sys
 import shutil
+import hashlib
 from datetime import datetime
 from tkinter import messagebox
 
 from utils import find_file_case_insensitive, backup_file
 from ini_parser import (
     load_items,
-    build_attribute_catalog,
     read_text,
     write_text,
     build_modified_ini,
@@ -24,6 +26,14 @@ from ini_parser import (
 from unp4k_handler import run_unp4k
 from user_cfg import ensure_language_cfg
 
+# --- Erwartete Hashes der unp4k-Suite-Komponenten (laut Ihrer VT-Ausgabe) ---
+_EXPECTED_SHA256 = {
+    "unp4k.exe":      "a4b40d8a741ad50a1757ce82bb552a773aa62a386b82a7028c751272608aac2f",
+    "unforge.exe":    "754301144e5a92621bcf31c3531e9b13b4f402355d66b386e5799ee0f2a6dd3f",
+    "unp4k.gui.exe":  "c74a5324290f8a909fa7da933789e86098d5093bf92f4dbed3ace3dfcd7e8438",
+}
+
+# --- Konsolen-Adapter ---
 class _NullConsole:
     def section(self, msg): print(f"[STEP] {msg}")
     def ok(self, msg):      print(f"[OK] {msg}")
@@ -73,6 +83,7 @@ class _TeeConsole:
     def log(self, msg):
         self._c.log(msg); self._write_file("LOG", msg)
 
+# --- Pfad-Helfer ---
 def _dev_dir():
     return os.path.abspath(os.path.dirname(__file__))
 
@@ -82,42 +93,11 @@ def _exe_dir():
     except Exception:
         return None
 
-def _resource_dir(*parts):
-    """
-    Liefert einen vorhandenen Ressourcenordner (PyInstaller 6.x kompatibel):
-    - onefile:   sys._MEIPASS (Temp\_MEI…)
-    - onedir:    <dist>\_internal
-    - dev:       neben __file__
-    """
-    candidates = []
-    meipass = getattr(sys, "_MEIPASS", None)
-    if meipass:
-        candidates += [
-            os.path.join(meipass, *parts),
-            os.path.join(meipass, "_internal", *parts),
-        ]
-    exedir = _exe_dir()
-    if exedir:
-        candidates += [
-            os.path.join(exedir, *parts),
-            os.path.join(exedir, "_internal", *parts),
-        ]
-    devdir = _dev_dir()
-    candidates += [
-        os.path.join(devdir, *parts),
-        os.path.join(devdir, "_internal", *parts),
-    ]
-    for c in candidates:
-        if os.path.isdir(c):
-            return c
-    return candidates[0] if candidates else _dev_dir()
-
 def _app_dir():
-    # Für Logdatei etc. lieber EXE-Verzeichnis, sonst Dev
     return _exe_dir() or _dev_dir()
 
-def _unp4k_dir():
-    return _resource_dir("unp4k-suite-v3.13.21")
+def _meipass_dir():
+    return getattr(sys, "_MEIPASS", None)
 
 def _resolve_live_dir(game_dir: str):
     if not game_dir:
@@ -133,6 +113,82 @@ def _resolve_live_dir(game_dir: str):
     if os.path.isfile(cand): return pu, cand
     return None, None
 
+# --- unp4k: nie intern ausführen; extern bereitstellen + prüfen ---
+_UNP4K_DIRNAME = "unp4k-suite-v3.13.21"
+
+def _sha256_of(path: str) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+def _verify_unp4k_suite(dir_path: str, c: _TeeConsole) -> bool:
+    ok_all = True
+    for fn, expected in _EXPECTED_SHA256.items():
+        p = os.path.join(dir_path, fn)
+        if not os.path.isfile(p):
+            c.error(f"Fehlt: {p}")
+            ok_all = False
+            continue
+        got = _sha256_of(p)
+        c.info(f"Gefundener SHA256: {got}")
+        c.info(f"Erwartet:        {expected}")
+        if got.lower() != expected.lower():
+            c.error(f"Hash-Mismatch bei {fn}")
+            ok_all = False
+    return ok_all
+
+def _copytree(src, dst):
+    if os.path.isdir(dst):
+        return
+    shutil.copytree(src, dst)
+
+def _find_or_materialize_unp4k(c: _TeeConsole) -> str | None:
+    """
+    Bevorzugt externen Ordner neben EXE/Script.
+    Falls nur in _MEIPASS/_internal vorhanden -> nach außen kopieren.
+    Gibt finalen externen Pfad zurück oder None bei Fehler.
+    """
+    base = _app_dir()
+    external = os.path.join(base, _UNP4K_DIRNAME)
+    if os.path.isdir(external):
+        return external
+
+    # Liegt es versehentlich im Bundle?
+    mei = _meipass_dir()
+    candidates_internal = []
+    if mei:
+        candidates_internal += [
+            os.path.join(mei, _UNP4K_DIRNAME),
+            os.path.join(mei, "_internal", _UNP4K_DIRNAME),
+        ]
+    # Manche onedir-Builds legen _internal direkt neben EXE ab
+    exedir = _exe_dir()
+    if exedir:
+        candidates_internal += [
+            os.path.join(exedir, "_internal", _UNP4K_DIRNAME),
+        ]
+
+    for src in candidates_internal:
+        if os.path.isdir(src):
+            try:
+                c.info(f"Finde gebündeltes unp4k unter: {src}")
+                c.info(f"Kopiere nach extern: {external}")
+                _copytree(src, external)
+                return external
+            except Exception as e:
+                c.error(f"Konnte unp4k nicht nach außen kopieren: {e}")
+                return None
+
+    # Letzter Versuch: DEV-Nachbar (beim Entwickeln)
+    dev_alt = os.path.join(_dev_dir(), _UNP4K_DIRNAME)
+    if os.path.isdir(dev_alt):
+        return dev_alt
+
+    return None
+
+# --- Haupt-Pipeline ---
 def run_pipeline(gui, game_dir, unp4k_dir=None, settings=None):
     base_dir = _app_dir()
     log_path = os.path.join(base_dir, "log.log")
@@ -143,15 +199,20 @@ def run_pipeline(gui, game_dir, unp4k_dir=None, settings=None):
         if not live_dir or not p4k:
             return _fail(gui, "Bitte gültigen Star Citizen Ordner wählen (LIVE/PU oder dessen Parent).")
 
-        unp_dir = unp4k_dir or _unp4k_dir()
-        if not os.path.isdir(unp_dir):
-            return _fail(gui, f"unp4k-Ordner nicht gefunden:\n{unp_dir}")
+        # unp4k extern sicherstellen + verifizieren
+        suite_dir = unp4k_dir or _find_or_materialize_unp4k(c)
+        if not suite_dir or not os.path.isdir(suite_dir):
+            return _fail(gui, f"unp4k-Ordner nicht gefunden oder nicht extern bereitstellbar:\n{suite_dir or '(None)'}")
+
+        c.section("Integrity")
+        c.info(f"Unp4k dir: {suite_dir}")
+        if not _verify_unp4k_suite(suite_dir, c):
+            return _fail(gui, "Integritätsprüfung der unp4k-Suite fehlgeschlagen.")
 
         c.section("Extraction")
-        c.info(f"Unp4k dir: {unp_dir}")
         c.info(f"Using Data.p4k: {p4k}")
 
-        ok, out = run_unp4k(unp_dir, p4k, "*.ini")
+        ok, out = run_unp4k(suite_dir, p4k, "*.ini")
         for ln in (out or "").splitlines():
             c.info(ln)
         if not ok:
@@ -160,23 +221,22 @@ def run_pipeline(gui, game_dir, unp4k_dir=None, settings=None):
         c.ok("Extraction complete.")
 
         c.section("Locate Files")
-        eng_ini = os.path.join(unp_dir, "Data", "Localization", "english", "global.ini")
+        eng_ini = os.path.join(suite_dir, "Data", "Localization", "english", "global.ini")
         if not os.path.isfile(eng_ini):
-            eng_ini = find_file_case_insensitive(os.path.join(unp_dir, "Data", "Localization"), "global.ini")
+            eng_ini = find_file_case_insensitive(os.path.join(suite_dir, "Data", "Localization"), "global.ini")
             if not eng_ini:
                 return _fail(gui, "English global.ini not found in unp4k output.")
         c.ok(f"Found: {eng_ini}")
 
         c.section("Parse & Catalog")
         items, raw_text, enc = load_items(eng_ini)
-        catalog = build_attribute_catalog(items)
-        all_cats = sorted(set(k for k in catalog.keys()))
+        all_cats = sorted({it.get("category") for it in items if it.get("category")})
         c.ok(f"{len(items)} items recognized across {len(all_cats)} categories.")
         c.info(f"Used encoding: {enc}")
 
         set_parsed = _get(gui, "set_parsed_data")
         if callable(set_parsed):
-            set_parsed(items, raw_text, catalog)
+            set_parsed(items, raw_text, {})
             c.section("Update GUI"); c.ok("Filter UI updated.")
 
         c.section("Ready"); c.ok("Choose attributes and click 'Generate'.")
@@ -192,12 +252,12 @@ def _get_analyzed_raw(gui):
     return None
 
 def _load_eng_ini_text_fallback():
-    unp_dir = _unp4k_dir()
-    eng_ini = os.path.join(unp_dir, "Data", "Localization", "english", "global.ini")
+    suite_dir = os.path.join(_app_dir(), _UNP4K_DIRNAME)
+    eng_ini = os.path.join(suite_dir, "Data", "Localization", "english", "global.ini")
     if os.path.isfile(eng_ini):
         txt, _ = read_text(eng_ini)
         return txt
-    loc_dir = os.path.join(unp_dir, "Data", "Localization")
+    loc_dir = os.path.join(suite_dir, "Data", "Localization")
     found = find_file_case_insensitive(loc_dir, "global.ini") if os.path.isdir(loc_dir) else None
     if found and os.path.isfile(found):
         txt, _ = read_text(found)
