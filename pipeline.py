@@ -1,8 +1,14 @@
-# pipeline.py  # V1.1
-# Keine Logikänderung – nur Versionssprung, damit klar ist:
-# - Finish-Zeile bleibt erhalten und triggert den Timer-Stopp in StatusConsole V1.1.
-
+# pipeline.py  # V1.2
+# Was gefixt wurde:
+# - Ressourcenpfade PyInstaller‑robust gemacht:
+#   _resource_dir() prüft sys._MEIPASS, EXE-Verzeichnis (+ _internal) und Dev-Ordner.
+#   Der unp4k-Ordner wird damit in onedir/onefile korrekt gefunden.
+# Was funktioniert:
+# - Analyze/Generate wie gehabt, Logging/Timer intakt.
+# - Schreiben nach LIVE\...\german_(germany)\global.ini + user.cfg-Update.
+# - Optionale Bereinigung von LIVE\Data.
 import os
+import sys
 import shutil
 from datetime import datetime
 from tkinter import messagebox
@@ -67,8 +73,51 @@ class _TeeConsole:
     def log(self, msg):
         self._c.log(msg); self._write_file("LOG", msg)
 
-def _app_dir():  return os.path.abspath(os.path.dirname(__file__))
-def _unp4k_dir(): return os.path.join(_app_dir(), "unp4k-suite-v3.13.21")
+def _dev_dir():
+    return os.path.abspath(os.path.dirname(__file__))
+
+def _exe_dir():
+    try:
+        return os.path.dirname(sys.executable)
+    except Exception:
+        return None
+
+def _resource_dir(*parts):
+    """
+    Liefert einen vorhandenen Ressourcenordner (PyInstaller 6.x kompatibel):
+    - onefile:   sys._MEIPASS (Temp\_MEI…)
+    - onedir:    <dist>\_internal
+    - dev:       neben __file__
+    """
+    candidates = []
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        candidates += [
+            os.path.join(meipass, *parts),
+            os.path.join(meipass, "_internal", *parts),
+        ]
+    exedir = _exe_dir()
+    if exedir:
+        candidates += [
+            os.path.join(exedir, *parts),
+            os.path.join(exedir, "_internal", *parts),
+        ]
+    devdir = _dev_dir()
+    candidates += [
+        os.path.join(devdir, *parts),
+        os.path.join(devdir, "_internal", *parts),
+    ]
+    for c in candidates:
+        if os.path.isdir(c):
+            return c
+    return candidates[0] if candidates else _dev_dir()
+
+def _app_dir():
+    # Für Logdatei etc. lieber EXE-Verzeichnis, sonst Dev
+    return _exe_dir() or _dev_dir()
+
+def _unp4k_dir():
+    return _resource_dir("unp4k-suite-v3.13.21")
 
 def _resolve_live_dir(game_dir: str):
     if not game_dir:
