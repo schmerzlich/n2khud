@@ -1,78 +1,55 @@
-# n2khud.spec  # V0.2
-# Was gefixt wurde:
-# - Entfernt: Bundling der unp4k-Suite (senkt VT-False-Positives).
-# - Beibehalten: onedir, keine UPX/strip, Version-Infos.
+# n2khud.spec  # V0.1
+# Fixes:
+# - Removed any bundling of 'unp4k-suite-v3.13.21' (keine Add-Data/Tree dafür).
+# - Only 'resources' included as datas.
+# Works:
+# - onedir build with icon; Tkinter GUI.
 
-import os
-from PyInstaller.building.build_main import Analysis, PYZ, EXE, COLLECT
-from PyInstaller.building.api import TOC, Tree
-from PyInstaller.utils.win32.versioninfo import VSVersionInfo, StringStruct, StringTable, VarStruct, VarFileInfo, StringFileInfo, FixedFileInfo
+import sys
+from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_data_files
 
 block_cipher = None
 
-version_info = VSVersionInfo(
-    ffi=FixedFileInfo(
-        filevers=(1, 0, 0, 0),
-        prodvers=(1, 0, 0, 0),
-        mask=0x3f,
-        flags=0x0,
-        OS=0x40004,
-        fileType=0x1,
-        subtype=0x0,
-        date=(0, 0)
-    ),
-    kids=[
-        StringFileInfo([
-            StringTable('040904B0', [
-                StringStruct('CompanyName', 'n2k'),
-                StringStruct('FileDescription', 'n2khud – Star Citizen global.ini Editor'),
-                StringStruct('FileVersion', '1.0.0.0'),
-                StringStruct('InternalName', 'n2khud'),
-                StringStruct('LegalCopyright', '© 2025 n2k'),
-                StringStruct('OriginalFilename', 'n2khud.exe'),
-                StringStruct('ProductName', 'n2khud'),
-                StringStruct('ProductVersion', '1.0.0.0'),
-            ])
-        ]),
-        VarFileInfo([VarStruct('Translation', [0x0409, 0x04B0])])
-    ]
-)
+hidden = [
+    "tkinter",
+    "queue",
+    "re",
+    "codecs",
+]
+# Falls PyInstaller etwas von Tkinter verpasst:
+hidden += collect_submodules("tkinter")
 
-datas = TOC()
-datas += Tree('resources', prefix='resources')  # Icon etc.
-
-hiddenimports = ['tkinter', 'queue', 're', 'codecs']
+datas = collect_data_files("resources", includes=["resources/*"], excludes=[])
 
 a = Analysis(
-    ['main.py'],
+    ["main.py"],
     pathex=[],
     binaries=[],
     datas=datas,
-    hiddenimports=hiddenimports,
+    hiddenimports=hidden,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],
-    win_no_prefer_redirects=False,
-    win_private_assemblies=False,
-    cipher=block_cipher,
     noarchive=False,
 )
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
+# Windowed App (keine Konsole). Für Konsole: console=True setzen.
 exe = EXE(
     pyz,
     a.scripts,
+    [],
     exclude_binaries=True,
-    name='n2khud',
-    icon='resources/app.ico',
+    name="n2khud",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=False,
-    console=True,
-    version=version_info,
+    upx=True,
+    console=False,
+    icon="resources/app.ico",
 )
 
 coll = COLLECT(
@@ -81,6 +58,7 @@ coll = COLLECT(
     a.zipfiles,
     a.datas,
     strip=False,
-    upx=False,
-    name='n2khud'
+    upx=True,
+    upx_exclude=[],
+    name="n2khud",
 )
