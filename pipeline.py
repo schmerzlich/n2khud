@@ -22,6 +22,7 @@ from ini_parser import (
     read_text,
     write_text,
     build_modified_ini,
+    build_attribute_catalog,
 )
 from unp4k_handler import run_unp4k
 from user_cfg import ensure_language_cfg
@@ -236,7 +237,8 @@ def run_pipeline(gui, game_dir, unp4k_dir=None, settings=None):
 
         set_parsed = _get(gui, "set_parsed_data")
         if callable(set_parsed):
-            set_parsed(items, raw_text, {})
+            catalog = build_attribute_catalog(items)  # <-- NEU
+            set_parsed(items, raw_text, catalog)      # <-- catalog statt {}
             c.section("Update GUI"); c.ok("Filter UI updated.")
 
         c.section("Ready"); c.ok("Choose attributes and click 'Generate'.")
