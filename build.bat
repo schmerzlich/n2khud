@@ -1,53 +1,55 @@
 @echo off
-setlocal ENABLEDELAYEDEXPANSION
+setlocal
+title n2khud — clean onedir build
 
-REM === build.bat — V0.1 ===
-REM Einstellungen
-set APPNAME=n2khud
-set ICON=resources\app.ico
-set RES=resources
-set UNP4K_DIR=unp4k-suite-v3.13.21
-set PY=py -3.11
-set CONSOLE=no  REM yes|no
+rem --- Pfade ---
+set ROOT=%~dp0
+set VENV=%ROOT%.venv
+set DIST=%ROOT%dist\n2khud
+set BUILD=%ROOT%build
 
-echo === Clean ===
-if exist build rd /s /q build
-if exist dist\%APPNAME% rd /s /q dist\%APPNAME%
-if exist %APPNAME%.spec del %APPNAME%.spec
+echo === Clean old outputs ===
+if exist "%DIST%" rmdir /s /q "%DIST%"
+if exist "%BUILD%" rmdir /s /q "%BUILD%"
 
-echo === PyInstaller installieren (falls nötig) ===
-%PY% -m pip install -U pip wheel >nul 2>&1
-%PY% -m pip show pyinstaller >nul 2>&1 || %PY% -m pip install pyinstaller
-
-echo === Build ===
-set CONSOLE_FLAG=--noconsole
-if /I "%CONSOLE%"=="yes" set CONSOLE_FLAG=--console
-
-%PY% -m PyInstaller ^
-  --onedir ^
-  --noconfirm ^
-  %CONSOLE_FLAG% ^
-  --name %APPNAME% ^
-  --icon=%ICON% ^
-  --add-data "%RES%;%RES%" ^
-  --hidden-import=tkinter ^
-  --hidden-import=queue ^
-  --hidden-import=re ^
-  --hidden-import=codecs ^
-  main.py
-
-if errorlevel 1 (
-  echo Build failed.
-  exit /b 1
+echo === Ensure venv ===
+if not exist "%VENV%\Scripts\python.exe" (
+  py -3 -m venv "%VENV%" || goto :err
 )
+call "%VENV%\Scripts\activate.bat"
 
-echo === Externe unp4k-Suite bereitstellen ===
-if exist "%UNP4K_DIR%" (
-  xcopy "%UNP4K_DIR%" "dist\%APPNAME%\%UNP4K_DIR%" /E /I /Y >nul
-) else (
-  echo Hinweis: "%UNP4K_DIR%" wurde nicht gefunden. Bitte manuell neben die EXE legen.
-)
+echo === Install deps ===
+python -m pip install -U pip wheel || goto :err
+python -m pip install -U pyinstaller || goto :err
 
-echo === Fertig ===
-echo Dist: .\dist\%APPNAME%\
-endlocal
+echo === Build onedir ===
+pyinstaller --noconfirm --clean --onedir ^
+  --name n2khud ^
+  --icon resources\app.ico ^
+  --add-data "resources;resources" ^
+  --hidden-import tkinter --hidden-import queue --hidden-import re --hidden-import codecs ^
+  main.py || goto :err
+
+echo === Prune dist folder ===
+rem Spezifikation, Batch-Skripte, Logs aus Distro entfernen (falls irgendwie hineingeraten)
+del /q "%DIST%\*.spec" 2>nul
+del /q "%DIST%\*.bat"  2>nul
+del /q "%DIST%\*.log"  2>nul
+del /q "%DIST%\log.log" 2>nul
+
+rem Sicherstellen, dass KEIN unp4k versehentlich drin liegt
+rmdir /s /q "%DIST%\unp4k-suite-v3.13.21" 2>nul
+del /q "%DIST%\unp4k.exe" 2>nul
+del /q "%DIST%\unforge.exe" 2>nul
+del /q "%DIST%\unp4k.gui.exe" 2>nul
+
+echo.
+echo === DONE ===
+echo Distro: "%DIST%"
+echo Hinweis: Nutzer muss "unp4k-suite-v3.13.21" neben "%DIST%" bzw. neben n2khud.exe ablegen.
+echo.
+goto :eof
+
+:err
+echo Build failed. Aborting.
+exit /b 1
