@@ -9,7 +9,7 @@
 import subprocess, os, hashlib
 
 # Erwarteter SHA256-Hash der unp4k.exe (Beispielwert – anpassen!)
-EXPECTED_SHA256 = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+EXPECTED_SHA256 = "a4b40d8a741ad50a1757ce82bb552a773aa62a386b82a7028c751272608aac2f"
 
 def _file_sha256(path, buf_size=65536):
     """Berechnet den SHA256-Hash einer Datei."""
