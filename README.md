@@ -36,16 +36,16 @@ Es fügt ausschließlich Klammerinhalte hinter Item-Namen hinzu (z. B. `Avalanch
 ## Installation
 
 1. **n2khud herunterladen und entpacken**  
-   Lade `n2khud_v1_2_0.zip` von der Release-Seite herunter und entpacke den Inhalt in einen Ordner deiner Wahl.
+   Lade `n2khud_v1_2_1.zip` von der Release-Seite herunter und entpacke den Inhalt in einen Ordner deiner Wahl.
 
 2. **unp4k-Suite herunterladen**  
    Lade die **unp4k v3.13.21** ZIP-Datei hier herunter:  
    🔗 [https://github.com/dolkensp/unp4k/releases/tag/v3.13.21](https://github.com/dolkensp/unp4k/releases/tag/v3.13.21)
 
-3. **unp4k neben n2khud.exe legen**  
-   Entpacke den Ordner `unp4k-suite-v3.13.21` aus dem Download und platziere ihn **im gleichen Verzeichnis** wie `n2khud.exe`.
+3. **unp4k Archiv neben n2khud.exe legen**
+4. Wichtig: Entpacke den Ordner `unp4k-suite-v3.13.21` aus dem Download und platziere ihn **im gleichen Verzeichnis** wie `n2khud.exe`.
 
-4. **Starten**  
+5. **Starten**  
    Doppelklicke `n2khud.exe`. Beim ersten Start wird die Integrität der `unp4k`-Dateien geprüft.
 
 ---
@@ -139,16 +139,16 @@ It only adds bracketed parts after item names (e.g., `Avalanche (Mil S02 A)`) to
 ## Installation
 
 1. **Download and extract n2khud**  
-   Download `n2khud_v1_2_0.zip` from the release page and extract it to a folder of your choice.
+   Download `n2khud_v1_2_1.zip` from the release page and extract it to a folder of your choice.
 
 2. **Download unp4k suite**  
    Download **unp4k v3.13.21** ZIP from here:  
    🔗 [https://github.com/dolkensp/unp4k/releases/tag/v3.13.21](https://github.com/dolkensp/unp4k/releases/tag/v3.13.21)
 
-3. **Place unp4k next to n2khud.exe**  
-   Extract the `unp4k-suite-v3.13.21` folder from the download and place it **in the same directory** as `n2khud.exe`.
+3. **Place unp4k archive next to n2khud.exe**
+4. Important: Extract the `unp4k-suite-v3.13.21` folder from the download and place it **in the same directory** as `n2khud.exe`.
 
-4. **Run**  
+5. **Run**  
    Double-click `n2khud.exe`. On first start, the integrity of the `unp4k` files will be verified.
 
 ---
