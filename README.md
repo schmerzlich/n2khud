@@ -87,11 +87,39 @@ Um **n2khud** vollständig zu entfernen:
 
 ---
 
+## Haftungsausschluss / Disclaimer
+
+**Star Citizen** und alle zugehörigen geistigen Eigentumsrechte, Inhalte und Markenzeichen sind Eigentum von Cloud Imperium Games Corporation und deren Tochtergesellschaften.
+
+Dieses Tool ist ein **inoffizielles Fanprojekt** und steht in keiner Verbindung zu Cloud Imperium Games oder deren verbundenen Unternehmen.
+
+Alle Inhalte, die nicht vom Tool-Host oder dessen Nutzern stammen, sind Eigentum ihrer jeweiligen Rechteinhaber.
+
+Offizielle Star Citizen Webseite: [https://robertsspaceindustries.com/](https://robertsspaceindustries.com/)
+
+---
+
 ## Lizenz – MIT License
 
 Copyright (c) 2025 schmrzlch
 
-[... Lizenztext unverändert beibehalten ...]
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 ---
 
@@ -190,11 +218,39 @@ To completely remove **n2khud**:
 
 ---
 
-## License – MIT License
+## Disclaimer
+
+**Star Citizen** and all associated intellectual property, content, and trademarks are owned by Cloud Imperium Games Corporation and its subsidiaries.
+
+This tool is an **unofficial fan project** and is not affiliated with Cloud Imperium Games or any of its affiliated companies.
+
+All content not created by the tool’s host or its users remains the property of their respective owners.
+
+Official Star Citizen website: [https://robertsspaceindustries.com/](https://robertsspaceindustries.com/)
+
+---
+
+## Lizenz – MIT License
 
 Copyright (c) 2025 schmrzlch
 
-[... license text unchanged ...]
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 ---
 
