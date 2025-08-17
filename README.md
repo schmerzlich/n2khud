@@ -53,7 +53,7 @@ Es fügt ausschließlich Klammerinhalte hinter Item-Namen hinzu (z. B. `Avalanch
 ## Nutzung
 
 1. Spielverzeichnis wählen (Verzeichnis `LIVE`- oder `PU`).  
-2. Aktuell bitte immer "Revmove temp Data folder" anhaken! (Aktuell gibt es ein Problem, bei dem eine alte Version einer extrahierten global.ini genutzt wird - Ich fixe das soon TM. 
+2. "Revmove temp Data folder" anhaken, falls gewünscht. 
 3. **Analyze** klicken.  
 4. Attribute auswählen.  
 5. Abkürzungen & Format einstellen.  
@@ -185,7 +185,7 @@ It only adds bracketed parts after item names (e.g., `Avalanche (Mil S02 A)`) to
 ## Usage
 
 1. Select the game directory (Direcory `LIVE`- or `PU`).
-2. Actually you should always check "Remove temp Data folder"! (There is an issue were the program could use an older version of an extracted global.ini and not a new one - I fix this soon TM)
+2. Check "Remove temp Data folder" if wanted.
 3. Click **Analyze**.  
 4. Select attributes.  
 5. Adjust abbreviations & format.  
