@@ -1,9 +1,11 @@
-# pipeline.py  # V1.3.1
+# pipeline.py  # V1.3.2
 # Was gefixt wurde:
-# - Cleanup löscht jetzt den Data-Ordner im unp4k-Verzeichnis (suite_dir\Data),
-#   nicht mehr fälschlich LIVE\Data.
-# - Der in Analyze ermittelte unp4k-Pfad wird am GUI-Objekt hinterlegt (gui.suite_dir),
-#   damit Generate denselben Pfad für den Cleanup nutzen kann.
+# - Generate nutzt nicht mehr versehentlich eine alte extrahierte global.ini.
+#   Neue Helferfunktion _ensure_fresh_eng_ini() prüft mtime(Data.p4k) vs. mtime(eng_ini)
+#   und triggert bei Bedarf eine frische Extraction.
+# - Cleanup löscht weiterhin den Data-Ordner im unp4k-Verzeichnis (suite_dir\Data),
+#   nicht LIVE\Data.
+# - In Analyze wird der unp4k-Pfad am GUI gemerkt (gui.suite_dir).
 #
 # Was funktioniert:
 # - Analyze/Generate unverändert, Logging/Timer intakt.
@@ -125,7 +127,7 @@ def _sha256_of(path: str) -> str:
             h.update(chunk)
     return h.hexdigest()
 
-def _verify_unp4k_suite(dir_path: str, c: _TeeConsole) -> bool:
+def _verify_unp4k_suite(dir_path: str, c: "_TeeConsole") -> bool:
     ok_all = True
     for fn, expected in _EXPECTED_SHA256.items():
         p = os.path.join(dir_path, fn)
@@ -146,7 +148,7 @@ def _copytree(src, dst):
         return
     shutil.copytree(src, dst)
 
-def _find_or_materialize_unp4k(c: _TeeConsole) -> str | None:
+def _find_or_materialize_unp4k(c: "_TeeConsole") -> str | None:
     """
     Bevorzugt externen Ordner neben EXE/Script.
     Falls nur in _MEIPASS/_internal vorhanden -> nach außen kopieren.
@@ -157,6 +159,7 @@ def _find_or_materialize_unp4k(c: _TeeConsole) -> str | None:
     if os.path.isdir(external):
         return external
 
+    # Liegt es versehentlich im Bundle?
     mei = _meipass_dir()
     candidates_internal = []
     if mei:
@@ -164,6 +167,7 @@ def _find_or_materialize_unp4k(c: _TeeConsole) -> str | None:
             os.path.join(mei, _UNP4K_DIRNAME),
             os.path.join(mei, "_internal", _UNP4K_DIRNAME),
         ]
+    # Manche onedir-Builds legen _internal direkt neben EXE ab
     exedir = _exe_dir()
     if exedir:
         candidates_internal += [
@@ -181,11 +185,66 @@ def _find_or_materialize_unp4k(c: _TeeConsole) -> str | None:
                 c.error(f"Konnte unp4k nicht nach außen kopieren: {e}")
                 return None
 
+    # Letzter Versuch: DEV-Nachbar (beim Entwickeln)
     dev_alt = os.path.join(_dev_dir(), _UNP4K_DIRNAME)
     if os.path.isdir(dev_alt):
         return dev_alt
 
     return None
+
+# --- NEU: Frische-Check + ggf. Re-Extraktion für eng.ini ---
+def _ensure_fresh_eng_ini(live_dir: str, gui, c: "_TeeConsole") -> str | None:
+    """
+    Stellt sicher, dass die englische global.ini frisch aus Data.p4k extrahiert ist.
+    Strategie:
+      - suite_dir bestimmen (vom GUI gemerkt, sonst Standard).
+      - Falls eng_ini fehlt ODER älter als Data.p4k ist -> unp4k erneut ausführen.
+      - Pfad zu eng_ini zurückgeben oder None bei Fehler.
+    """
+    # suite_dir bestimmen
+    try:
+        suite_dir = getattr(gui, "suite_dir", None) or os.path.join(_app_dir(), _UNP4K_DIRNAME)
+    except Exception:
+        suite_dir = os.path.join(_app_dir(), _UNP4K_DIRNAME)
+
+    p4k = os.path.join(live_dir, "Data.p4k")
+    eng_ini = os.path.join(suite_dir, "Data", "Localization", "english", "global.ini")
+
+    if not os.path.isfile(p4k):
+        c.error(f"Data.p4k nicht gefunden: {p4k}")
+        return None
+
+    need_extract = False
+    if not os.path.isfile(eng_ini):
+        need_extract = True
+    else:
+        try:
+            t_ini = os.path.getmtime(eng_ini)
+            t_p4k = os.path.getmtime(p4k)
+            if t_ini < t_p4k:
+                need_extract = True
+        except Exception:
+            need_extract = True
+
+    if need_extract:
+        c.section("Extraction")
+        c.info(f"Refreshing from: {p4k}")
+        ok, out = run_unp4k(suite_dir, p4k, "*.ini")
+        for ln in (out or "").splitlines():
+            c.info(ln)
+        if not ok:
+            c.error("unp4k reported an error.")
+            return None
+        if not os.path.isfile(eng_ini):
+            # Falls unp4k anders schreibt, versuchen wir zu suchen
+            found = find_file_case_insensitive(os.path.join(suite_dir, "Data", "Localization"), "global.ini")
+            if not found:
+                c.error("English global.ini not found in unp4k output.")
+                return None
+            eng_ini = found
+        c.ok("Extraction (refresh) complete.")
+
+    return eng_ini
 
 # --- Haupt-Pipeline ---
 def run_pipeline(gui, game_dir, unp4k_dir=None, settings=None):
@@ -208,12 +267,11 @@ def run_pipeline(gui, game_dir, unp4k_dir=None, settings=None):
         if not _verify_unp4k_suite(suite_dir, c):
             return _fail(gui, "Integritätsprüfung der unp4k-Suite fehlgeschlagen.")
 
-        # >>> NEU: den verwendeten unp4k-Pfad am GUI merken
+        # verwendeten unp4k-Pfad am GUI merken
         try:
             setattr(gui, "suite_dir", suite_dir)
         except Exception:
             pass
-        # <<<
 
         c.section("Extraction")
         c.info(f"Using Data.p4k: {p4k}")
@@ -284,7 +342,15 @@ def generate_from_gui(gui, game_dir, settings):
         c.section("Generate")
         c.info("Generating global.ini from selected attributes…")
 
-        raw_text = _get_analyzed_raw(gui) or _load_eng_ini_text_fallback()
+        # NEU: sicherstellen, dass wir eine FRISCHE eng_ini haben
+        eng_ini_path = _ensure_fresh_eng_ini(live_dir, gui, c)
+        if eng_ini_path:
+            txt, _enc = read_text(eng_ini_path)
+            raw_text = txt
+        else:
+            # Fallback: GUI-Analyse oder (zur Not) alter Mechanismus
+            raw_text = _get_analyzed_raw(gui) or _load_eng_ini_text_fallback()
+
         if not raw_text:
             return _fail(gui, "Quell-INI nicht verfügbar. Bitte erneut 'Analyze' ausführen.")
 
@@ -308,7 +374,7 @@ def generate_from_gui(gui, game_dir, settings):
         ensure_language_cfg(live_dir, "german_(germany)", "english")
         c.ok("user.cfg updated.")
 
-        # >>> NEU: Cleanup im unp4k-Verzeichnis, nicht LIVE
+        # Cleanup: im unp4k-Verzeichnis, nicht LIVE
         if settings and settings.get("cleanup_after_write"):
             try:
                 suite_dir = getattr(gui, "suite_dir", None) or os.path.join(_app_dir(), _UNP4K_DIRNAME)
@@ -318,7 +384,6 @@ def generate_from_gui(gui, game_dir, settings):
             if os.path.isdir(data_dir):
                 shutil.rmtree(data_dir, ignore_errors=True)
                 c.ok("Temporary Data folder removed from unp4k directory.")
-        # <<<
 
         c.section("Done"); c.ok("All set.")
         c.ok("Finish — Exit program")
