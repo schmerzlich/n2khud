@@ -1,13 +1,14 @@
-# pipeline.py  # V1.3
+# pipeline.py  # V1.3.1
 # Was gefixt wurde:
-# - unp4k wird niemals aus _internal / _MEIPASS ausgeführt. Falls vorhanden, wird es
-#   in einen externen Ordner (neben der EXE) kopiert und nur von dort verwendet.
-# - SHA-256-Integritätscheck für unp4k.exe / unforge.exe / unp4k.gui.exe.
+# - Cleanup löscht jetzt den Data-Ordner im unp4k-Verzeichnis (suite_dir\Data),
+#   nicht mehr fälschlich LIVE\Data.
+# - Der in Analyze ermittelte unp4k-Pfad wird am GUI-Objekt hinterlegt (gui.suite_dir),
+#   damit Generate denselben Pfad für den Cleanup nutzen kann.
 #
 # Was funktioniert:
 # - Analyze/Generate unverändert, Logging/Timer intakt.
 # - Schreiben nach LIVE\...\german_(germany)\global.ini + user.cfg-Update.
-# - Optionale Bereinigung von LIVE\Data.
+# - Optionale Bereinigung von suite_dir\Data.
 
 import os
 import sys
@@ -156,7 +157,6 @@ def _find_or_materialize_unp4k(c: _TeeConsole) -> str | None:
     if os.path.isdir(external):
         return external
 
-    # Liegt es versehentlich im Bundle?
     mei = _meipass_dir()
     candidates_internal = []
     if mei:
@@ -164,7 +164,6 @@ def _find_or_materialize_unp4k(c: _TeeConsole) -> str | None:
             os.path.join(mei, _UNP4K_DIRNAME),
             os.path.join(mei, "_internal", _UNP4K_DIRNAME),
         ]
-    # Manche onedir-Builds legen _internal direkt neben EXE ab
     exedir = _exe_dir()
     if exedir:
         candidates_internal += [
@@ -182,7 +181,6 @@ def _find_or_materialize_unp4k(c: _TeeConsole) -> str | None:
                 c.error(f"Konnte unp4k nicht nach außen kopieren: {e}")
                 return None
 
-    # Letzter Versuch: DEV-Nachbar (beim Entwickeln)
     dev_alt = os.path.join(_dev_dir(), _UNP4K_DIRNAME)
     if os.path.isdir(dev_alt):
         return dev_alt
@@ -209,6 +207,13 @@ def run_pipeline(gui, game_dir, unp4k_dir=None, settings=None):
         c.info(f"Unp4k dir: {suite_dir}")
         if not _verify_unp4k_suite(suite_dir, c):
             return _fail(gui, "Integritätsprüfung der unp4k-Suite fehlgeschlagen.")
+
+        # >>> NEU: den verwendeten unp4k-Pfad am GUI merken
+        try:
+            setattr(gui, "suite_dir", suite_dir)
+        except Exception:
+            pass
+        # <<<
 
         c.section("Extraction")
         c.info(f"Using Data.p4k: {p4k}")
@@ -237,8 +242,8 @@ def run_pipeline(gui, game_dir, unp4k_dir=None, settings=None):
 
         set_parsed = _get(gui, "set_parsed_data")
         if callable(set_parsed):
-            catalog = build_attribute_catalog(items)  # <-- NEU
-            set_parsed(items, raw_text, catalog)      # <-- catalog statt {}
+            catalog = build_attribute_catalog(items)
+            set_parsed(items, raw_text, catalog)
             c.section("Update GUI"); c.ok("Filter UI updated.")
 
         c.section("Ready"); c.ok("Choose attributes and click 'Generate'.")
@@ -281,7 +286,7 @@ def generate_from_gui(gui, game_dir, settings):
 
         raw_text = _get_analyzed_raw(gui) or _load_eng_ini_text_fallback()
         if not raw_text:
-            return _fail(gui, "Quell‑INI nicht verfügbar. Bitte erneut 'Analyze' ausführen.")
+            return _fail(gui, "Quell-INI nicht verfügbar. Bitte erneut 'Analyze' ausführen.")
 
         merged_text = build_modified_ini(raw_text, settings)
 
@@ -303,11 +308,17 @@ def generate_from_gui(gui, game_dir, settings):
         ensure_language_cfg(live_dir, "german_(germany)", "english")
         c.ok("user.cfg updated.")
 
+        # >>> NEU: Cleanup im unp4k-Verzeichnis, nicht LIVE
         if settings and settings.get("cleanup_after_write"):
-            data_dir = os.path.join(live_dir, "Data")
+            try:
+                suite_dir = getattr(gui, "suite_dir", None) or os.path.join(_app_dir(), _UNP4K_DIRNAME)
+            except Exception:
+                suite_dir = os.path.join(_app_dir(), _UNP4K_DIRNAME)
+            data_dir = os.path.join(suite_dir, "Data")
             if os.path.isdir(data_dir):
                 shutil.rmtree(data_dir, ignore_errors=True)
-                c.ok("Temporary Data folder removed.")
+                c.ok("Temporary Data folder removed from unp4k directory.")
+        # <<<
 
         c.section("Done"); c.ok("All set.")
         c.ok("Finish — Exit program")
