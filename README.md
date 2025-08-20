@@ -36,7 +36,7 @@ Es fügt ausschließlich Klammerinhalte hinter Item-Namen hinzu (z. B. `Avalanch
 ## Installation
 
 1. **n2khud herunterladen und entpacken**  
-   Lade `n2khud_v1_2_1.zip` von der Release-Seite herunter und entpacke den Inhalt in einen Ordner deiner Wahl.
+   Lade `n2khud_v1_2_2.zip` von der Release-Seite herunter und entpacke den Inhalt in einen Ordner deiner Wahl.
 
 2. **unp4k-Suite herunterladen**  
    Lade die **unp4k v3.13.21** ZIP-Datei hier herunter:  
@@ -168,7 +168,7 @@ It only adds bracketed parts after item names (e.g., `Avalanche (Mil S02 A)`) to
 ## Installation
 
 1. **Download and extract n2khud**  
-   Download `n2khud_v1_2_1.zip` from the release page and extract it to a folder of your choice.
+   Download `n2khud_v1_2_2.zip` from the release page and extract it to a folder of your choice.
 
 2. **Download unp4k suite**  
    Download **unp4k v3.13.21** ZIP from here:  
